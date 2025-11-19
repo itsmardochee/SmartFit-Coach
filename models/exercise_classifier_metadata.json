@@ -1,0 +1,12 @@
+{
+  "classes": [
+    "pushup",
+    "squat"
+  ],
+  "max_sequence_length": 778,
+  "n_features": 99,
+  "test_accuracy": 1.0,
+  "test_loss": 8.128290937747806e-05,
+  "architecture": "Bidirectional LSTM",
+  "training_date": "2025-11-19T20:08:18.394138"
+}

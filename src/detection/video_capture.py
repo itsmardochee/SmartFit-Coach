@@ -6,6 +6,7 @@ Gère l'accès à la webcam et la lecture des frames.
 import cv2
 from typing import Optional, Tuple
 import numpy as np
+import platform
 
 
 class VideoCapture:
@@ -36,10 +37,17 @@ class VideoCapture:
         """
         Démarre la capture vidéo.
 
+        Utilise DirectShow sur Windows pour éviter les problèmes avec Media Foundation.
+
         Returns:
             bool: True si la caméra est accessible, False sinon
         """
-        self.cap = cv2.VideoCapture(self.camera_id)
+        # Sur Windows, utiliser DirectShow (CAP_DSHOW) pour éviter les erreurs MSMF
+        if platform.system() == "Windows":
+            self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_DSHOW)
+        else:
+            self.cap = cv2.VideoCapture(self.camera_id)
+
         self.is_opened = self.cap.isOpened()
 
         if self.is_opened:
@@ -111,3 +119,47 @@ class VideoCapture:
     def __del__(self):
         """Destructeur: s'assure que la caméra est libérée."""
         self.release()
+
+
+def list_available_cameras(max_cameras: int = 10) -> list:
+    """
+    Détecte les caméras disponibles sur le système.
+    
+    Args:
+        max_cameras: Nombre maximum de caméras à tester
+        
+    Returns:
+        Liste des IDs de caméras disponibles avec leurs noms
+    """
+    available_cameras = []
+    
+    for camera_id in range(max_cameras):
+        try:
+            # Essayer d'ouvrir la caméra
+            if platform.system() == "Windows":
+                cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+            else:
+                cap = cv2.VideoCapture(camera_id)
+            
+            # Vérifier si elle fonctionne
+            if cap.isOpened():
+                ret, _ = cap.read()
+                if ret:
+                    # Récupérer les infos de la caméra
+                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    fps = int(cap.get(cv2.CAP_PROP_FPS))
+                    
+                    camera_info = {
+                        'id': camera_id,
+                        'name': f"Caméra {camera_id}",
+                        'resolution': f"{width}x{height}",
+                        'fps': fps if fps > 0 else 30
+                    }
+                    available_cameras.append(camera_info)
+                
+                cap.release()
+        except Exception:
+            continue
+    
+    return available_cameras
