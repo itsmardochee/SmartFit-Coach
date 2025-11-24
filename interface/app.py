@@ -197,41 +197,74 @@ def main():
 
         st.divider()
 
-        # Sélection de la caméra
-        st.subheader("📹 Caméra")
+        st.divider()
+
+        # Sélection de la source vidéo
+        st.subheader("📹 Source Vidéo")
         
-        available_cameras = st.session_state.available_cameras
-        
-        if len(available_cameras) > 1:
-            # Plusieurs caméras disponibles
-            camera_options = [
-                f"{cam['name']} ({cam['resolution']})" 
-                for cam in available_cameras
-            ]
+        input_source = st.radio(
+            "Source",
+            ["Webcam", "Fichier Vidéo"],
+            key="input_source_selector",
+            disabled=st.session_state.session_active
+        )
+
+        if input_source == "Webcam":
+            available_cameras = st.session_state.available_cameras
             
-            selected_index = st.selectbox(
-                "Choisir la caméra",
-                range(len(camera_options)),
-                format_func=lambda i: camera_options[i],
-                key="camera_selector",
+            if len(available_cameras) > 1:
+                # Plusieurs caméras disponibles
+                camera_options = [
+                    f"{cam['name']} ({cam['resolution']})" 
+                    for cam in available_cameras
+                ]
+                
+                selected_index = st.selectbox(
+                    "Choisir la caméra",
+                    range(len(camera_options)),
+                    format_func=lambda i: camera_options[i],
+                    key="camera_selector",
+                    disabled=st.session_state.session_active
+                )
+                
+                st.session_state.selected_camera = available_cameras[selected_index]['id']
+                
+                # Afficher les infos
+                cam_info = available_cameras[selected_index]
+                st.caption(f"📊 {cam_info['resolution']} • {cam_info['fps']} FPS")
+            else:
+                # Une seule caméra
+                st.info(f"📷 {available_cameras[0]['name']}")
+                st.session_state.selected_camera = available_cameras[0]['id']
+            
+            # Bouton pour rafraîchir les caméras
+            if st.button("🔄 Détecter caméras", disabled=st.session_state.session_active):
+                from src.detection.video_capture import list_available_cameras
+                st.session_state.available_cameras = list_available_cameras()
+                st.rerun()
+
+        else:
+            # Mode Fichier Vidéo
+            uploaded_file = st.file_uploader(
+                "Choisir une vidéo", 
+                type=['mp4', 'avi', 'mov', 'mkv'],
                 disabled=st.session_state.session_active
             )
             
-            st.session_state.selected_camera = available_cameras[selected_index]['id']
-            
-            # Afficher les infos
-            cam_info = available_cameras[selected_index]
-            st.caption(f"📊 {cam_info['resolution']} • {cam_info['fps']} FPS")
-        else:
-            # Une seule caméra
-            st.info(f"📷 {available_cameras[0]['name']}")
-            st.session_state.selected_camera = available_cameras[0]['id']
-        
-        # Bouton pour rafraîchir les caméras
-        if st.button("🔄 Détecter caméras", disabled=st.session_state.session_active):
-            from src.detection.video_capture import list_available_cameras
-            st.session_state.available_cameras = list_available_cameras()
-            st.rerun()
+            if uploaded_file is not None:
+                # Sauvegarder le fichier temporairement
+                import tempfile
+                import os
+                
+                tfile = tempfile.NamedTemporaryFile(delete=False)
+                tfile.write(uploaded_file.read())
+                
+                st.session_state.selected_camera = tfile.name
+                st.success(f"✅ Vidéo chargée: {uploaded_file.name}")
+            else:
+                st.warning("Veuillez charger une vidéo pour commencer.")
+                # Empêcher le démarrage si pas de vidéo
+                st.session_state.selected_camera = None
 
         st.divider()
 
@@ -245,16 +278,19 @@ def main():
                 use_container_width=True,
                 disabled=st.session_state.session_active,
             ):
-                st.session_state.session_active = True
-                st.session_state.start_time = time.time()
-                st.session_state.counter = get_counter(exercise_type)
-                # Créer une nouvelle session d'entraînement
-                st.session_state.workout_session = WorkoutSession(exercise_type)
-                # Réinitialiser les analyseurs
-                st.session_state.posture_analyzer.reset()
-                st.session_state.feedback_generator.reset()
-                st.session_state.classifier.reset()
-                st.rerun()
+                if st.session_state.selected_camera is None:
+                    st.error("❌ Aucune source vidéo sélectionnée")
+                else:
+                    st.session_state.session_active = True
+                    st.session_state.start_time = time.time()
+                    st.session_state.counter = get_counter(exercise_type)
+                    # Créer une nouvelle session d'entraînement
+                    st.session_state.workout_session = WorkoutSession(exercise_type)
+                    # Réinitialiser les analyseurs
+                    st.session_state.posture_analyzer.reset()
+                    st.session_state.feedback_generator.reset()
+                    st.session_state.classifier.reset()
+                    st.rerun()
 
         with col2:
             if st.button(
@@ -379,7 +415,7 @@ def main():
         if "video_capture" not in st.session_state:
             # Utiliser la caméra sélectionnée
             selected_cam_id = st.session_state.selected_camera
-            st.session_state.video_capture = VideoCapture(camera_id=selected_cam_id)
+            st.session_state.video_capture = VideoCapture(source=selected_cam_id)
             
             if not st.session_state.video_capture.start():
                 st.error(
@@ -588,7 +624,7 @@ def main():
                 # Convertir BGR vers RGB pour Streamlit
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 video_placeholder.image(
-                    frame_rgb, channels="RGB", use_container_width=True
+                    frame_rgb, channels="RGB", width="stretch"
                 )
 
                 # Mettre à jour les métriques
@@ -650,8 +686,8 @@ def main():
                     - Calories : {workout_session.get_calories_estimate() if workout_session else 0} kcal
                 """)
 
-                # Délai pour contrôler le FPS (~20 FPS)
-                time.sleep(0.05)
+                # Délai minimal pour ne pas surcharger le CPU, mais fluide
+                time.sleep(0.01)
 
         except Exception as e:
             st.error(f"❌ Erreur : {str(e)}")
