@@ -1,0 +1,29 @@
+services:
+  smartfit-coach:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: smartfit-coach:latest
+    container_name: smartfit-coach
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data/sessions:/app/data/sessions
+      - ./logs:/app/logs
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Pour Linux avec accès webcam (ne fonctionne pas sur Windows/Mac)
+    # Décommentez les lignes suivantes si vous êtes sur Linux :
+    # devices:
+    #   - /dev/video0:/dev/video0
+    # privileged: true

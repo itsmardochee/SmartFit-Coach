@@ -152,27 +152,70 @@ def draw_text_with_background(
         np.ndarray: Frame avec le texte dessiné
     """
     font = cv2.FONT_HERSHEY_SIMPLEX
+    # Gérer le texte multi-lignes si trop long
+    max_width = frame.shape[1] - 40  # Marge de 20px de chaque côté
+    
+    # Découper le texte en mots
+    words = text.split(' ')
+    lines = []
+    current_line = []
+    
+    for word in words:
+        test_line = ' '.join(current_line + [word])
+        (w, h), _ = cv2.getTextSize(test_line, font, font_scale, font_thickness)
+        if w < max_width:
+            current_line.append(word)
+        else:
+            if current_line:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+            else:
+                # Le mot est plus long que la ligne, on le coupe (cas rare)
+                lines.append(word)
+                current_line = []
+    
+    if current_line:
+        lines.append(' '.join(current_line))
+        
+    if not lines:
+        return frame
 
-    # Calculer la taille du texte
-    (text_width, text_height), baseline = cv2.getTextSize(
-        text, font, font_scale, font_thickness
-    )
+    # Dessiner chaque ligne
+    current_y = position[1]
+    
+    # Calculer la hauteur totale pour ajuster si on dépasse en bas
+    total_height = 0
+    line_heights = []
+    for line in lines:
+        (w, h), baseline = cv2.getTextSize(line, font, font_scale, font_thickness)
+        total_height += h + baseline + padding * 2
+        line_heights.append(h + baseline)
+        
+    # Si on dépasse en bas, on remonte tout le bloc
+    if current_y + total_height > frame.shape[0]:
+        current_y = frame.shape[0] - total_height - 10
 
-    x, y = position
+    for i, line in enumerate(lines):
+        (text_width, text_height), baseline = cv2.getTextSize(
+            line, font, font_scale, font_thickness
+        )
+        
+        # Dessiner le rectangle de fond pour cette ligne
+        cv2.rectangle(
+            frame,
+            (position[0] - padding, current_y - text_height - padding),
+            (position[0] + text_width + padding, current_y + baseline + padding),
+            bg_color,
+            -1,
+        )
 
-    # Dessiner le rectangle de fond
-    cv2.rectangle(
-        frame,
-        (x - padding, y - text_height - padding),
-        (x + text_width + padding, y + baseline + padding),
-        bg_color,
-        -1,
-    )
-
-    # Dessiner le texte
-    cv2.putText(
-        frame, text, (x, y), font, font_scale, text_color, font_thickness, cv2.LINE_AA
-    )
+        # Dessiner le texte
+        cv2.putText(
+            frame, line, (position[0], current_y), font, font_scale, text_color, font_thickness, cv2.LINE_AA
+        )
+        
+        # Avancer à la ligne suivante
+        current_y += text_height + baseline + padding * 2
 
     return frame
 
