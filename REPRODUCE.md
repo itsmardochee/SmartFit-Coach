@@ -23,7 +23,7 @@ Un `Dockerfile` est fourni à la racine du projet pour créer un environnement i
 
 ### Option B : Installation Locale (Python)
 
-**Prérequis :** Python 3.8 ou supérieur.
+**Prérequis :** Python 3.11 ou supérieur.
 
 1. **Créer un environnement virtuel :**
    ```bash

@@ -5,8 +5,7 @@
 SmartFit Coach est un système intelligent qui utilise la vision par ordinateur pour détecter les mouvements du corps, compter automatiquement les répétitions d'exercices et fournir un feedback en temps réel sur l'exécution.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Python](https://img.shields.io/badge/python-3.8+-green)
-![License](https://img.shields.io/badge/license-MIT-orange)
+![Python](https://img.shields.io/badge/python-3.11+-green)
 
 ---
 
@@ -22,9 +21,10 @@ SmartFit Coach est un système intelligent qui utilise la vision par ordinateur 
 
 ## 🛠️ Technologies Utilisées
 
-- **Python 3.8+**
+- **Python 3.11+**
 - **OpenCV** : Traitement vidéo et capture webcam
 - **MediaPipe** : Détection de pose en temps réel
+- **TensorFlow/Keras** : Modèle LSTM pour classification d'exercices
 - **NumPy** : Calculs mathématiques et géométriques
 - **Streamlit** : Interface utilisateur web interactive
 - **Pytest** : Tests unitaires
@@ -35,8 +35,8 @@ SmartFit Coach est un système intelligent qui utilise la vision par ordinateur 
 
 ### Prérequis
 
-- Python 3.8 ou supérieur
-- Webcam fonctionnelle
+- Python 3.11 ou supérieur
+- Webcam fonctionnelle (pour utilisation locale)
 - Windows, macOS ou Linux
 
 ### 1. Cloner le dépôt
@@ -112,33 +112,16 @@ SmartFit-Coach/
 │   ├── counting/               # Comptage des répétitions
 │   │   ├── angle_calculator.py # Calculs géométriques
 │   │   └── exercise_detectors/ # Compteurs par exercice
-│   │       ├── squat_counter.py
-│   │       └── pushup_counter.py
-│   ├── recognition/            # Reconnaissance d'exercices (à venir)
+│   ├── recognition/            # Classification d'exercices (LSTM)
 │   ├── feedback/               # Génération de feedback
 │   └── utils/                  # Utilitaires
-│       └── visualization.py    # Visualisation du squelette
-├── interface/                  # Interface utilisateur
-│   └── app.py                  # Application Streamlit
+├── interface/                  # Interface utilisateur Streamlit
+├── models/                     # Modèles ML entraînés
+├── data/                       # Datasets et sessions
 ├── tests/                      # Tests unitaires
-│   ├── test_detection.py
-│   └── test_counting.py
-├── data/                       # Datasets
-├── models/                     # Modèles ML
-├── docs/                       # Documentation
-└── notebooks/                  # Jupyter notebooks
-│   ├── recognition/        # Classification des exercices
-│   ├── feedback/           # Génération du feedback
-│   └── utils/              # Fonctions utilitaires
-│       └── visualization.py
-├── models/                 # Modèles ML entraînés
-├── data/                   # Datasets et sessions
-├── interface/              # Interface utilisateur
-├── tests/                  # Tests unitaires
-├── notebooks/              # Jupyter notebooks
-├── docs/                   # Documentation
-├── demo_detection.py       # Script de démonstration
-└── requirements.txt        # Dépendances Python
+├── notebooks/                  # Jupyter notebooks
+├── scripts/                    # Scripts d'extraction de données
+└── requirements.txt            # Dépendances Python
 ```
 
 ---
@@ -150,7 +133,7 @@ SmartFit-Coach/
 - [x] Module de capture vidéo
 - [x] Détection des 33 keypoints avec MediaPipe
 - [x] Visualisation du squelette en temps réel
-- [x] Tests unitaires (10 tests)
+- [x] Tests unitaires
 
 ### ✅ Étape 2 : Comptage des Répétitions (**COMPLÈTE**)
 
@@ -160,12 +143,12 @@ SmartFit-Coach/
 - [x] Logique anti-rebond
 - [x] Tests unitaires pour le comptage
 
-### 🔄 Étape 3 : Reconnaissance et Feedback (En cours)
+### ✅ Étape 3 : Reconnaissance et Feedback (**COMPLÈTE**)
 
+- [x] Modèle LSTM de classification d'exercices (Squats/Pompes)
+- [x] Dataset annoté et extraction de keypoints
 - [x] Feedback basique par exercice
-- [ ] Modèle de classification d'exercices (ML)
-- [ ] Dataset annoté
-- [ ] Analyse de qualité avancée
+- [x] Entraînement et sauvegarde du modèle
 
 ### ✅ Étape 4 : Interface Utilisateur (**COMPLÈTE**)
 
@@ -180,32 +163,14 @@ SmartFit-Coach/
 
 ## 🏋️ Exercices Supportés
 
-### Actuellement implémentés
-
+### Actuellement implémentés :
 - 🏋️ **Squats** : Détection basée sur l'angle des genoux et hanches
 - 💪 **Pompes** : Détection basée sur l'angle des coudes
 
-### En développement
-
+### En développement :
 - 🦵 **Fentes**
-- [x] Visualisation du squelette en temps réel
-- [x] Script de démonstration
-
-### 🔄 Étape 2 : Comptage des Répétitions (À venir)
-- [ ] Calcul d'angles entre articulations
-- [ ] Détection des cycles de mouvement
-- [ ] Compteur pour squats
-- [ ] Compteur pour pompes
-
-### 🔄 Étape 3 : Reconnaissance et Feedback (À venir)
-- [ ] Modèle de classification d'exercices
-- [ ] Détection des erreurs de posture
-- [ ] Génération de feedback
-
-### 🔄 Étape 4 : Interface Utilisateur (À venir)
-- [ ] Interface Streamlit
-- [ ] Statistiques de session
-- [ ] Historique des performances
+- 🏃 **Burpees**
+- 🤸 **Abdominaux**
 
 ---
 
@@ -225,19 +190,6 @@ pytest tests/ --cov=src --cov-report=html
 
 ---
 
-## 📝 Exercices Supportés
-
-### Actuellement implémentés :
-- 🏋️ **Squats** : Détection basée sur l'angle des genoux et hanches
-- 💪 **Pompes** : Détection basée sur l'angle des coudes
-
-### En développement :
-- 🦵 **Fentes**
-- 🏃 **Burpees**
-- 🤸 **Abdominaux**
-
----
-
 ## 🤝 Contribution
 
 Les contributions sont les bienvenues ! Pour contribuer :
@@ -250,41 +202,14 @@ Les contributions sont les bienvenues ! Pour contribuer :
 
 ---
 
-## 📖 Documentation
-
-La documentation complète est disponible dans le dossier `docs/` :
-
-- [Guide d'installation détaillé](docs/installation.md) (à venir)
-- [Guide d'utilisation](docs/usage.md) (à venir)
-- [Documentation technique](docs/technical.md) (à venir)
-- [API Reference](docs/api.md) (à venir)
-
----
-
 ## 🐛 Problèmes Connus
 
 - La détection peut être moins précise dans des conditions d'éclairage faible
 - Le FPS peut varier selon les performances de la machine
 - Certains angles de caméra peuvent affecter la précision
+- Docker Desktop sur Windows/Mac ne supporte pas l'accès aux webcams (utiliser Python local)
 
 Pour signaler un bug, ouvrez une [issue](https://github.com/itsmardochee/SmartFit-Coach/issues).
-
----
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
----
-
-## 👥 Équipe
-
-**SmartFit Coach Development Team**
-
-- Développement : [Votre nom]
-- Vision par ordinateur : [Nom]
-- Interface utilisateur : [Nom]
-- Tests et QA : [Nom]
 
 ---
 
@@ -292,15 +217,13 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 
 - [MediaPipe](https://google.github.io/mediapipe/) pour leur excellente bibliothèque de détection de pose
 - [OpenCV](https://opencv.org/) pour les outils de traitement d'image
+- [TensorFlow](https://www.tensorflow.org/) pour le framework de deep learning
 - La communauté open-source pour l'inspiration et les ressources
 
 ---
 
 ## 📞 Contact
 
-Pour toute question ou suggestion :
-
-- Email : [votre-email@example.com]
 - GitHub : [@itsmardochee](https://github.com/itsmardochee)
 
 ---

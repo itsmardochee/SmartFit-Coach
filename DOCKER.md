@@ -170,7 +170,7 @@ docker push <username>/smartfit-coach:latest
 ## ⚙️ Spécifications de l'image
 
 - **Image de base** : python:3.11.14-slim
-- **Taille** : ~2.5 GB (avec TensorFlow et OpenCV)
+- **Taille approximative** : ~2.5 GB (avec TensorFlow et OpenCV)
 - **Port** : 8501
 - **Healthcheck** : Intégré
 - **Dépendances système** :
@@ -179,6 +179,8 @@ docker push <username>/smartfit-coach:latest
   - libsm6, libxext6, libxrender-dev
   - libgomp1
   - curl
+
+**Note** : JAX et JAXlib sont installés séparément de TensorFlow pour résoudre les conflits de dépendances ml_dtypes.
 
 ---
 
