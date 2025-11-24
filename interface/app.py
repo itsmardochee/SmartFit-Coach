@@ -363,7 +363,9 @@ def main():
             st.divider()
 
             # Afficher l'exercice en cours
-            st.markdown(f"""
+            # Afficher l'exercice en cours
+            exercise_info_container = st.empty()
+            exercise_info_container.markdown(f"""
                 <div style="text-align: center; padding: 10px; background-color: #f0f2f6; border-radius: 10px; margin-bottom: 10px;">
                     <h3 style="margin:0; color: #333;">🏋️ {exercise_type}</h3>
                     <small style="color: #666;">Mode: {"Auto" if st.session_state.auto_detect else "Manuel"}</small>
@@ -438,12 +440,14 @@ def main():
                                 st.session_state.exercise_type = exercise_type
                                 counter = get_counter(exercise_type)
                                 st.session_state.counter = counter
-
-                # Analyser la posture
-                posture_result = None
-                feedback = None
-                if keypoints:
-                    posture_result = posture_analyzer.analyze(exercise_type, keypoints)
+                                
+                                # Mettre à jour l'affichage de l'exercice
+                                exercise_info_container.markdown(f"""
+                                    <div style="text-align: center; padding: 10px; background-color: #f0f2f6; border-radius: 10px; margin-bottom: 10px;">
+                                        <h3 style="margin:0; color: #333;">🏋️ {exercise_type}</h3>
+                                        <small style="color: #666;">Mode: Auto</small>
+                                    </div>
+                                """, unsafe_allow_html=True)
 
                 # Mettre à jour le compteur
                 result = (
@@ -457,29 +461,46 @@ def main():
                     }
                 )
 
-                # Générer le feedback intelligent
-                if posture_result and keypoints:
-                    feedback = feedback_generator.generate_feedback(
-                        quality_score=posture_result["quality_score"],
-                        errors=posture_result["errors"],
-                        exercise=exercise_type,
-                        rep_count=result["count"],
-                    )
+                # En mode auto, si on détecte une mauvaise position (ex: au sol pour des squats),
+                # on masque le message d'erreur car l'auto-détection va probablement changer l'exercice.
+                if st.session_state.auto_detect and "Mets-toi" in result["feedback"]:
+                    result["feedback"] = "Analyse du mouvement en cours..."
 
-                    if feedback:
-                        feedback_message = feedback["message"]
-                        feedback_color_map = {
-                            "green": (0, 255, 0),
-                            "orange": (0, 165, 255),
-                            "red": (0, 0, 255),
-                            "yellow": (0, 255, 255),
-                        }
-                        bg_color = feedback_color_map.get(
-                            feedback["color"], (100, 100, 100)
+                # Vérifier si la visibilité est suffisante avant de continuer
+                is_visible = "⚠️" not in result["feedback"]
+
+                # Analyser la posture et générer le feedback seulement si visible
+                posture_result = None
+                feedback = None
+                
+                if is_visible and keypoints:
+                    posture_result = posture_analyzer.analyze(exercise_type, keypoints)
+                    
+                    if posture_result:
+                        feedback = feedback_generator.generate_feedback(
+                            quality_score=posture_result["quality_score"],
+                            errors=posture_result["errors"],
+                            exercise=exercise_type,
+                            rep_count=result["count"],
                         )
-                    else:
-                        feedback_message = result["feedback"]
-                        bg_color = (0, 100, 255)
+
+                # Déterminer le message à afficher
+                if not is_visible:
+                    # Priorité absolue au message de visibilité
+                    feedback_message = result["feedback"]
+                    bg_color = (0, 100, 255) # Bleu pour info/warning
+                
+                elif feedback:
+                    feedback_message = feedback["message"]
+                    feedback_color_map = {
+                        "green": (0, 255, 0),
+                        "orange": (0, 165, 255),
+                        "red": (0, 0, 255),
+                        "yellow": (0, 255, 255),
+                    }
+                    bg_color = feedback_color_map.get(
+                        feedback["color"], (100, 100, 100)
+                    )
                 else:
                     feedback_message = result["feedback"]
                     bg_color = (0, 100, 255)
@@ -514,16 +535,17 @@ def main():
                     3,
                 )
                 
-                # Afficher l'exercice détecté sur la vidéo
-                cv2.putText(
-                    frame,
-                    f"{exercise_type}",
-                    (frame.shape[1] - 250, 60),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0, 255, 255),
-                    2,
-                )
+                # Afficher l'exercice détecté sur la vidéo (seulement si visible)
+                if is_visible:
+                    cv2.putText(
+                        frame,
+                        f"{exercise_type}",
+                        (frame.shape[1] - 250, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (0, 255, 255),
+                        2,
+                    )
 
                 # Afficher la qualité sur la vidéo
                 if posture_result:
@@ -538,10 +560,25 @@ def main():
                         2,
                     )
 
+                # Nettoyer le message pour OpenCV (supprimer les émojis et caractères spéciaux)
+                # OpenCV ne gère pas bien l'UTF-8 par défaut
+                clean_message = (
+                    feedback_message.replace("⚠️", "!")
+                    .replace("✅", "")
+                    .replace("⬇️", "Bas")
+                    .replace("⬆️", "Haut")
+                    .replace("é", "e")
+                    .replace("è", "e")
+                    .replace("ê", "e")
+                    .replace("à", "a")
+                    .replace("ç", "c")
+                    .strip()
+                )
+                
                 # Afficher le feedback sur la vidéo
                 frame = draw_text_with_background(
                     frame,
-                    feedback_message,
+                    clean_message,
                     (20, frame.shape[0] - 30),
                     font_scale=0.8,
                     text_color=(255, 255, 255),

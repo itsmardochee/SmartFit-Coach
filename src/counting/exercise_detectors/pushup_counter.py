@@ -110,13 +110,48 @@ class PushUpCounter:
         )
 
         if not (left_side_visible or right_side_visible):
+            # Diagnostic plus précis
+            feedback_msg = "⚠️ Position toi de profil ou de face"
+            
+            # Vérifier si on voit au moins le tronc (épaules ou hanches)
+            torso_visible = (is_keypoint_visible(left_shoulder) or is_keypoint_visible(right_shoulder) or 
+                           is_keypoint_visible(left_hip) or is_keypoint_visible(right_hip))
+            
+            if torso_visible:
+                wrists_visible = is_keypoint_visible(left_wrist) or is_keypoint_visible(right_wrist)
+                shoulders_visible = is_keypoint_visible(left_shoulder) or is_keypoint_visible(right_shoulder)
+                
+                if not wrists_visible:
+                    feedback_msg = "⚠️ Reculez pour qu'on voie vos mains"
+                elif not shoulders_visible:
+                    feedback_msg = "⚠️ Reculez pour qu'on voie votre tête"
+                    
             return {
                 "count": self.count,
                 "phase": self.current_phase.value
                 if self.current_phase
                 else "initialisation",
                 "metrics": None,
-                "feedback": "⚠️ Position toi de profil ou de face",
+                "feedback": feedback_msg,
+            }
+
+        # Vérifier l'orientation du corps (Doit être horizontal pour une pompe)
+        # Note: Y augmente vers le bas (0=haut, 1=bas)
+        shoulder_y = (left_shoulder.y + right_shoulder.y) / 2
+        hip_y = (left_hip.y + right_hip.y) / 2
+        
+        # Pour une pompe, le corps est horizontal, donc la différence de hauteur est faible
+        # On assouplit le seuil pour tolérer les angles de caméra (ex: vue de haut)
+        is_horizontal = abs(hip_y - shoulder_y) < 0.45
+        
+        if not is_horizontal:
+             return {
+                "count": self.count,
+                "phase": self.current_phase.value
+                if self.current_phase
+                else "initialisation",
+                "metrics": None,
+                "feedback": "⚠️ Mets-toi au sol pour les pompes",
             }
 
         # Calculer les angles des coudes selon la visibilité

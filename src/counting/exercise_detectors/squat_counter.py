@@ -113,11 +113,45 @@ class SquatCounter:
         )
 
         if not (left_side_visible or right_side_visible):
+            # Diagnostic plus précis pour guider l'utilisateur
+            feedback_msg = "⚠️ Position toi de façon à être entièrement visible"
+            
+            # Vérifier si on voit au moins les hanches (centre du corps)
+            hips_visible = is_keypoint_visible(left_hip) or is_keypoint_visible(right_hip)
+            
+            if hips_visible:
+                # Si on voit les hanches mais pas le reste, c'est probablement un problème de cadrage (trop près)
+                ankles_visible = is_keypoint_visible(left_ankle) or is_keypoint_visible(right_ankle)
+                shoulders_visible = is_keypoint_visible(left_shoulder) or is_keypoint_visible(right_shoulder)
+                
+                if not ankles_visible:
+                    feedback_msg = "⚠️ Reculez pour qu'on voie vos pieds"
+                elif not shoulders_visible:
+                    feedback_msg = "⚠️ Reculez pour qu'on voie votre tête"
+            
             return {
                 "count": self.count,
                 "phase": self.current_phase.value,
                 "metrics": None,
-                "feedback": "⚠️ Position toi de façon à être entièrement visible",
+                "feedback": feedback_msg,
+            }
+
+        # Vérifier l'orientation du corps (Doit être vertical pour un squat)
+        # On utilise la moyenne des épaules et hanches visibles
+        # Note: Y augmente vers le bas (0=haut, 1=bas)
+        shoulder_y = (left_shoulder.y + right_shoulder.y) / 2
+        hip_y = (left_hip.y + right_hip.y) / 2
+        
+        # Pour un squat, les épaules doivent être au-dessus des hanches
+        # On utilise un seuil très permissif pour juste éviter la position allongée
+        is_vertical = (hip_y - shoulder_y) > 0.05
+        
+        if not is_vertical:
+             return {
+                "count": self.count,
+                "phase": self.current_phase.value,
+                "metrics": None,
+                "feedback": "⚠️ Mets-toi debout pour les squats",
             }
 
         # Calculer les angles selon la visibilité
