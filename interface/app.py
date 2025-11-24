@@ -111,9 +111,12 @@ def initialize_session_state():
     if "available_cameras" not in st.session_state:
         # Détecter les caméras au démarrage
         from src.detection.video_capture import list_available_cameras
+
         st.session_state.available_cameras = list_available_cameras()
         if not st.session_state.available_cameras:
-            st.session_state.available_cameras = [{'id': 0, 'name': 'Caméra 0', 'resolution': 'N/A', 'fps': 30}]
+            st.session_state.available_cameras = [
+                {"id": 0, "name": "Caméra 0", "resolution": "N/A", "fps": 30}
+            ]
 
 
 def get_counter(exercise_type: str):
@@ -201,64 +204,88 @@ def main():
 
         # Sélection de la source vidéo
         st.subheader("📹 Source Vidéo")
-        
+
         input_source = st.radio(
             "Source",
             ["Webcam", "Fichier Vidéo"],
             key="input_source_selector",
-            disabled=st.session_state.session_active
+            disabled=st.session_state.session_active,
         )
 
         if input_source == "Webcam":
             available_cameras = st.session_state.available_cameras
-            
+
+            # Vérifier si des caméras sont disponibles
+            if not available_cameras or len(available_cameras) == 0:
+                st.warning("⚠️ Aucune caméra détectée")
+                st.info("""
+                **Solutions possibles :**
+                - Vérifiez que votre webcam est bien connectée
+                - Autorisez l'accès à la caméra dans les paramètres système
+                - Si vous utilisez Docker Desktop sur Windows, l'accès aux webcams n'est pas supporté
+                - Utilisez l'environnement Python local pour accéder à la webcam
+                """)
+
+                # Bouton pour rafraîchir les caméras
+                if st.button("🔄 Réessayer la détection"):
+                    from src.detection.video_capture import list_available_cameras
+
+                    st.session_state.available_cameras = list_available_cameras()
+                    st.rerun()
+
+                st.stop()
+
             if len(available_cameras) > 1:
                 # Plusieurs caméras disponibles
                 camera_options = [
-                    f"{cam['name']} ({cam['resolution']})" 
-                    for cam in available_cameras
+                    f"{cam['name']} ({cam['resolution']})" for cam in available_cameras
                 ]
-                
+
                 selected_index = st.selectbox(
                     "Choisir la caméra",
                     range(len(camera_options)),
                     format_func=lambda i: camera_options[i],
                     key="camera_selector",
-                    disabled=st.session_state.session_active
+                    disabled=st.session_state.session_active,
                 )
-                
-                st.session_state.selected_camera = available_cameras[selected_index]['id']
-                
+
+                st.session_state.selected_camera = available_cameras[selected_index][
+                    "id"
+                ]
+
                 # Afficher les infos
                 cam_info = available_cameras[selected_index]
                 st.caption(f"📊 {cam_info['resolution']} • {cam_info['fps']} FPS")
             else:
                 # Une seule caméra
                 st.info(f"📷 {available_cameras[0]['name']}")
-                st.session_state.selected_camera = available_cameras[0]['id']
-            
+                st.session_state.selected_camera = available_cameras[0]["id"]
+
             # Bouton pour rafraîchir les caméras
-            if st.button("🔄 Détecter caméras", disabled=st.session_state.session_active):
+            if st.button(
+                "🔄 Détecter caméras", disabled=st.session_state.session_active
+            ):
                 from src.detection.video_capture import list_available_cameras
+
                 st.session_state.available_cameras = list_available_cameras()
                 st.rerun()
 
         else:
             # Mode Fichier Vidéo
             uploaded_file = st.file_uploader(
-                "Choisir une vidéo", 
-                type=['mp4', 'avi', 'mov', 'mkv'],
-                disabled=st.session_state.session_active
+                "Choisir une vidéo",
+                type=["mp4", "avi", "mov", "mkv"],
+                disabled=st.session_state.session_active,
             )
-            
+
             if uploaded_file is not None:
                 # Sauvegarder le fichier temporairement
                 import tempfile
                 import os
-                
+
                 tfile = tempfile.NamedTemporaryFile(delete=False)
                 tfile.write(uploaded_file.read())
-                
+
                 st.session_state.selected_camera = tfile.name
                 st.success(f"✅ Vidéo chargée: {uploaded_file.name}")
             else:
@@ -401,12 +428,15 @@ def main():
             # Afficher l'exercice en cours
             # Afficher l'exercice en cours
             exercise_info_container = st.empty()
-            exercise_info_container.markdown(f"""
+            exercise_info_container.markdown(
+                f"""
                 <div style="text-align: center; padding: 10px; background-color: #f0f2f6; border-radius: 10px; margin-bottom: 10px;">
                     <h3 style="margin:0; color: #333;">🏋️ {exercise_type}</h3>
                     <small style="color: #666;">Mode: {"Auto" if st.session_state.auto_detect else "Manuel"}</small>
                 </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
             # Statistiques de session
             stats_container = st.empty()
@@ -416,7 +446,7 @@ def main():
             # Utiliser la caméra sélectionnée
             selected_cam_id = st.session_state.selected_camera
             st.session_state.video_capture = VideoCapture(source=selected_cam_id)
-            
+
             if not st.session_state.video_capture.start():
                 st.error(
                     f"❌ Impossible d'accéder à la caméra {selected_cam_id}. "
@@ -476,14 +506,17 @@ def main():
                                 st.session_state.exercise_type = exercise_type
                                 counter = get_counter(exercise_type)
                                 st.session_state.counter = counter
-                                
+
                                 # Mettre à jour l'affichage de l'exercice
-                                exercise_info_container.markdown(f"""
+                                exercise_info_container.markdown(
+                                    f"""
                                     <div style="text-align: center; padding: 10px; background-color: #f0f2f6; border-radius: 10px; margin-bottom: 10px;">
                                         <h3 style="margin:0; color: #333;">🏋️ {exercise_type}</h3>
                                         <small style="color: #666;">Mode: Auto</small>
                                     </div>
-                                """, unsafe_allow_html=True)
+                                """,
+                                    unsafe_allow_html=True,
+                                )
 
                 # Mettre à jour le compteur
                 result = (
@@ -508,10 +541,10 @@ def main():
                 # Analyser la posture et générer le feedback seulement si visible
                 posture_result = None
                 feedback = None
-                
+
                 if is_visible and keypoints:
                     posture_result = posture_analyzer.analyze(exercise_type, keypoints)
-                    
+
                     if posture_result:
                         feedback = feedback_generator.generate_feedback(
                             quality_score=posture_result["quality_score"],
@@ -524,8 +557,8 @@ def main():
                 if not is_visible:
                     # Priorité absolue au message de visibilité
                     feedback_message = result["feedback"]
-                    bg_color = (0, 100, 255) # Bleu pour info/warning
-                
+                    bg_color = (0, 100, 255)  # Bleu pour info/warning
+
                 elif feedback:
                     feedback_message = feedback["message"]
                     feedback_color_map = {
@@ -570,7 +603,7 @@ def main():
                     (0, 255, 0),
                     3,
                 )
-                
+
                 # Afficher l'exercice détecté sur la vidéo (seulement si visible)
                 if is_visible:
                     cv2.putText(
@@ -610,7 +643,7 @@ def main():
                     .replace("ç", "c")
                     .strip()
                 )
-                
+
                 # Afficher le feedback sur la vidéo
                 frame = draw_text_with_background(
                     frame,
@@ -623,9 +656,7 @@ def main():
 
                 # Convertir BGR vers RGB pour Streamlit
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                video_placeholder.image(
-                    frame_rgb, channels="RGB", width="stretch"
-                )
+                video_placeholder.image(frame_rgb, channels="RGB", width="stretch")
 
                 # Mettre à jour les métriques
                 elapsed_time = int(time.time() - st.session_state.start_time)
