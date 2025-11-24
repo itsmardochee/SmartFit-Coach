@@ -1,0 +1,33 @@
+# Ignorer les fichiers de versionning
+.git
+.gitignore
+
+# Ignorer l'environnement virtuel local
+venv/
+env/
+
+# Ignorer les fichiers temporaires et caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ignorer les données lourdes (vidéos brutes)
+# On garde les modèles, mais on ignore les vidéos d'entraînement
+data/raw/
+data/processed/
+*.mp4
+*.avi
+*.mov
+
+# Ignorer les logs
+logs/
+*.log
+
+# Ignorer les fichiers Docker eux-mêmes
+Dockerfile
+.dockerignore
+REPRODUCE.md
